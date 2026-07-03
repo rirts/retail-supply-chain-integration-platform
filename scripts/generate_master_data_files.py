@@ -178,24 +178,44 @@ def generate_products(
 def generate_locations(valid_count: int, include_bad_records: bool) -> list[dict]:
     rows: list[dict] = []
 
-    for i in range(1, valid_count + 1):
-        location_type = random.choice(["STORE", "STORE", "STORE", "DC", "WAREHOUSE"])
-        location_id_prefix = {
-            "STORE": "STORE",
-            "DC": "DC",
-            "WAREHOUSE": "WH",
-        }[location_type]
+    required_locations: list[tuple[str, str]] = []
 
+    required_locations.extend(
+        [(f"STORE-{i:04d}", "STORE") for i in range(1, 36)]
+    )
+    required_locations.extend(
+        [(f"DC-{i:04d}", "DC") for i in range(1, 8)]
+    )
+    required_locations.extend(
+        [(f"WH-{i:04d}", "WAREHOUSE") for i in range(1, 8)]
+    )
+
+    for location_id, location_type in required_locations[:valid_count]:
         rows.append(
             {
-                "location_id": f"{location_id_prefix}-{i:04d}",
-                "location_name": f"{location_type.title()} Location {i:04d}",
+                "location_id": location_id,
+                "location_name": f"{location_type.title()} {location_id}",
                 "location_type": location_type,
                 "region": random.choice(REGIONS),
                 "country_code": random.choice(VALID_COUNTRY_CODES),
                 "location_status": random.choice(["ACTIVE", "ACTIVE", "ACTIVE", "INACTIVE"]),
             }
         )
+
+    next_index = 1
+    while len(rows) < valid_count:
+        location_id = f"EXTRA-{next_index:04d}"
+        rows.append(
+            {
+                "location_id": location_id,
+                "location_name": f"Extra Location {next_index:04d}",
+                "location_type": random.choice(VALID_LOCATION_TYPES),
+                "region": random.choice(REGIONS),
+                "country_code": random.choice(VALID_COUNTRY_CODES),
+                "location_status": random.choice(["ACTIVE", "ACTIVE", "ACTIVE", "INACTIVE"]),
+            }
+        )
+        next_index += 1
 
     if include_bad_records:
         rows.extend(
