@@ -262,3 +262,101 @@ join target.dim_location dest_l
     on sh.destination_location_id = dest_l.location_id
 order by sh.shipment_id
 limit 25;
+
+-- ============================================================
+-- Demo Queries: Event-Based Inventory Integration
+-- ============================================================
+
+-- 16. Event stream batch audit summary
+select
+    entity_name,
+    batch_type,
+    source_count,
+    accepted_count,
+    rejected_count,
+    loaded_count,
+    status,
+    error_message,
+    start_time,
+    end_time
+from monitoring.batch_audit_log
+where batch_type = 'EVENT_STREAM'
+order by created_at;
+
+
+-- 17. Event stream reconciliation
+select
+    entity_name,
+    source_count,
+    accepted_count,
+    rejected_count,
+    loaded_count,
+    count_difference,
+    status,
+    details
+from monitoring.reconciliation_results
+where entity_name = 'inventory_events'
+order by reconciled_at;
+
+
+-- 18. Inventory event rejected records by reason
+select
+    rejection_stage,
+    rejection_reason,
+    count(*) as rejected_count
+from monitoring.rejected_records
+where entity_name = 'inventory_events'
+group by 1, 2
+order by rejection_stage, rejected_count desc;
+
+
+-- 19. Inventory target counts
+select 'target.fact_inventory_movement' as table_name, count(*) as record_count
+from target.fact_inventory_movement
+
+union all
+
+select 'target.fact_inventory_snapshot' as table_name, count(*) as record_count
+from target.fact_inventory_snapshot
+order by table_name;
+
+
+-- 20. Integrated inventory movement sample
+select
+    im.event_id,
+    im.event_type,
+    im.product_id,
+    p.sku,
+    p.product_name,
+    im.location_id,
+    l.location_name,
+    im.quantity_change,
+    im.reason_code,
+    im.event_timestamp,
+    im.published_at
+from target.fact_inventory_movement im
+join target.dim_product p
+    on im.product_id = p.product_id
+join target.dim_location l
+    on im.location_id = l.location_id
+order by im.event_timestamp
+limit 25;
+
+
+-- 21. Inventory snapshot sample
+select
+    s.product_id,
+    p.sku,
+    p.product_name,
+    s.location_id,
+    l.location_name,
+    s.on_hand_quantity,
+    s.last_event_timestamp,
+    s.last_updated_at
+from target.fact_inventory_snapshot s
+join target.dim_product p
+    on s.product_id = p.product_id
+join target.dim_location l
+    on s.location_id = l.location_id
+order by abs(s.on_hand_quantity) desc
+limit 25;
