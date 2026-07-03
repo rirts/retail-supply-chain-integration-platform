@@ -46,6 +46,14 @@ python scripts/generate_master_data_files.py
 python scripts/generate_master_data_files.py --no-bad-records
 ```
 
+## Reproducible Data Generation
+
+By default, the generator uses seed `42` to keep demo data reproducible.
+
+```powershell
+python scripts/generate_master_data_files.py --seed 42
+```
+
 ## Notes
 
 Generated CSV files are intentionally excluded from Git through `.gitignore`.

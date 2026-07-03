@@ -315,6 +315,13 @@ def parse_args() -> argparse.Namespace:
         description="Generate ERP-style master data CSV files for the integration platform."
     )
 
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducible synthetic data.",
+    )
+
     parser.add_argument("--suppliers", type=int, default=25)
     parser.add_argument("--products", type=int, default=250)
     parser.add_argument("--locations", type=int, default=50)
@@ -329,6 +336,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+
+    random.seed(args.seed)
 
     generate_files(
         supplier_count=args.suppliers,
