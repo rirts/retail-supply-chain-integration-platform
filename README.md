@@ -370,6 +370,8 @@ order by reconciled_at;
 | `docs/nifi_integration.md` | Apache NiFi setup and demos |
 | `docs/source_to_target_mapping.md` | Source-to-target mappings for flat files, APIs, events, and NiFi demos |
 | `docs/data_quality_rules.md` | Data quality, rejected record, and reconciliation rules |
+| `docs/operational_runbook.md` | Operational instructions for running and validating the platform |
+| `docs/troubleshooting_guide.md` | Common issues, fixes, and debugging checklist |
 
 ## Project Status
 
