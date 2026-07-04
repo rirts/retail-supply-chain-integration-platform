@@ -1,105 +1,393 @@
 # Retail Supply Chain Integration Platform
 
-Production-style data integration project simulating enterprise retail supply chain integrations across flat files, REST APIs, and Kafka-compatible event streams.
+Production-style Data Integration Engineering project simulating enterprise retail supply chain integrations across flat files, REST APIs, event streams, middleware orchestration, SQL validation, rejected record handling, audit logging, and source-to-target reconciliation.
 
-The project demonstrates practical Data Integration Engineering skills using Apache NiFi, PostgreSQL, FastAPI, Redpanda, Python, SQL-based validation, rejected record handling, audit logging, and source-to-target reconciliation.
+This project is designed to demonstrate practical integration engineering patterns for roles such as:
+
+- Data Integration Engineer
+- Integration Engineer
+- Data Engineer
+- Analytics/Data Platform Engineer
+- Supply Chain Data Engineer
 
 ## Business Scenario
 
-A retail organization needs to integrate supply chain data from multiple enterprise systems into a centralized PostgreSQL platform used for supply chain planning, reporting, and operational monitoring.
+A retail company needs to integrate supply chain data from multiple enterprise systems into a centralized PostgreSQL platform used for supply chain planning, operational monitoring, and downstream analytics.
 
-The simulated sources include:
+The simulated source systems include:
 
-- ERP flat files for product, supplier, and location master data
-- REST APIs for sales orders, purchase orders, and shipments
-- Kafka-compatible inventory event streams
-- Intentional bad records to demonstrate validation, rejection, troubleshooting, and reconciliation
+| Source | Integration Type | Data |
+|---|---|---|
+| ERP flat files | Batch CSV | Products, suppliers, locations |
+| Enterprise REST API | API-based integration | Sales orders, purchase orders, shipments |
+| Warehouse event stream | Kafka-compatible events | Inventory movements |
+| Apache NiFi middleware | Visual orchestration | JDBC, flat-file ingestion, API ingestion |
+
+The platform demonstrates how integration pipelines can handle good records, bad records, duplicates, referential integrity failures, business rule violations, and source-to-target reconciliation.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    A[ERP CSV Flat Files] --> D[Apache NiFi]
-    B[Mock Enterprise REST API] --> D
-    C[Redpanda Inventory Events] --> D
-    D --> E[(PostgreSQL)]
-    E --> F[raw schema]
-    E --> G[staging schema]
-    E --> H[target schema]
-    E --> I[monitoring schema]
+    A[ERP CSV Flat Files] --> B[Raw Ingestion]
+    C[Mock Enterprise REST API] --> B
+    D[Redpanda Inventory Events] --> B
+    E[Apache NiFi Middleware] --> B
+
+    B --> F[(PostgreSQL raw schema)]
+    F --> G[(PostgreSQL staging schema)]
+    G --> H[(PostgreSQL target schema)]
+    G --> I[(monitoring.rejected_records)]
+    H --> J[(monitoring.reconciliation_results)]
+    B --> K[(monitoring.batch_audit_log)]
 ```
 
 ## Core Capabilities
 
 - Flat-file batch ingestion
-- REST API ingestion
-- Event-based integration
-- Raw, staging, target, and monitoring schemas
+- REST API ingestion with pagination
+- Event-based inventory integration using Redpanda
+- Apache NiFi visual middleware demos
+- PostgreSQL raw, staging, target, and monitoring schemas
 - Data quality validation
 - Rejected record handling
-- Batch audit logs
+- Duplicate event handling / idempotency
+- SQL upserts / merges
 - Source-to-target reconciliation
-- Troubleshooting guide and operational runbook
+- Batch audit logs
+- Operational documentation and troubleshooting guides
 
-## Local Stack
+## Tech Stack
 
 | Component | Purpose |
 |---|---|
 | PostgreSQL 16 | Integration database |
-| Apache NiFi | Middleware and flow orchestration |
-| FastAPI | Mock enterprise API |
+| Apache NiFi | Middleware and visual flow orchestration |
+| FastAPI | Mock enterprise REST API |
 | Redpanda | Kafka-compatible event streaming |
-| Adminer | PostgreSQL web UI |
-| Python 3.12 | Data generation and event producers |
+| Python 3.12 | Data generation, API loaders, event producer/consumer |
+| SQL / PLpgSQL | Validation, upserts, reconciliation |
+| Docker Compose | Local reproducible environment |
+| Adminer | PostgreSQL UI |
+| Redpanda Console | Event topic inspection |
 
-## Start Core Services
+## Data Model Layers
+
+| Schema | Purpose |
+|---|---|
+| `raw` | Landing zone for flat files, API responses, and event messages |
+| `staging` | Parsed and validated records with accepted/rejected status |
+| `target` | Integrated supplier, product, location, order, shipment, and inventory tables |
+| `monitoring` | Audit logs, rejected records, validation results, and reconciliation results |
+
+## Integration Flows
+
+### 1. Flat-File Integration
+
+```mermaid
+flowchart LR
+    A[CSV Files] --> B[Raw Loader / NiFi Demo]
+    B --> C[raw.file_ingestion_raw]
+    C --> D[staging validation]
+    D --> E[target dimensions]
+    D --> F[monitoring.rejected_records]
+    E --> G[monitoring.reconciliation_results]
+```
+
+Entities:
+
+- Suppliers
+- Products / SKUs
+- Locations / Stores / DCs / Warehouses
+
+Demonstrated patterns:
+
+- CSV ingestion
+- Schema and business validation
+- Duplicate detection
+- Referential integrity validation
+- Rejected record capture
+- Target upserts
+- Batch audit logs
+- Source-to-target reconciliation
+
+### 2. API-Based Integration
+
+```mermaid
+flowchart LR
+    A[FastAPI Mock Enterprise API] --> B[API Raw Loader / NiFi Demo]
+    B --> C[raw.api_ingestion_raw]
+    C --> D[staging validation]
+    D --> E[target fact tables]
+    D --> F[monitoring.rejected_records]
+    E --> G[monitoring.reconciliation_results]
+```
+
+Endpoints:
+
+- `/api/v1/sales-orders`
+- `/api/v1/purchase-orders`
+- `/api/v1/shipments`
+
+Demonstrated patterns:
+
+- REST API ingestion
+- Pagination
+- Incremental filter support through `updated_since`
+- API bad-record simulation
+- Source-to-target reconciliation
+- Operational audit logging
+
+### 3. Event-Based Inventory Integration
+
+```mermaid
+flowchart LR
+    A[Python Producer] --> B[Redpanda Topic: inventory-events]
+    B --> C[Python Consumer]
+    C --> D[raw.inventory_events_raw]
+    D --> E[staging.stg_inventory_events]
+    E --> F[target.fact_inventory_movement]
+    F --> G[target.fact_inventory_snapshot]
+    E --> H[monitoring.rejected_records]
+    G --> I[monitoring.reconciliation_results]
+```
+
+Demonstrated patterns:
+
+- Kafka-compatible event streaming
+- Event producer
+- Event consumer
+- Duplicate `event_id` handling
+- Idempotent raw ingestion
+- Inventory movement processing
+- Inventory snapshot updates
+- Event stream reconciliation
+
+### 4. Apache NiFi Middleware Demos
+
+```mermaid
+flowchart LR
+    A[GenerateFlowFile] --> B[PutSQL]
+    C[GetFile] --> D[PutDatabaseRecord]
+    E[InvokeHTTP] --> F[SplitJson]
+    F --> G[PutDatabaseRecord]
+    B --> H[(PostgreSQL)]
+    D --> H
+    G --> H
+```
+
+NiFi demonstrates:
+
+- PostgreSQL JDBC connectivity through `DBCPConnectionPool`
+- Flat-file ingestion using `GetFile` and `PutDatabaseRecord`
+- API ingestion using `InvokeHTTP`, `SplitJson`, and `PutDatabaseRecord`
+
+## Data Quality Rules
+
+Examples of validation rules implemented in SQL:
+
+| Area | Example Rules |
+|---|---|
+| Schema/type validation | Required fields, numeric casts, timestamp casts |
+| Duplicate detection | Duplicate supplier IDs, product IDs, location IDs, event IDs |
+| Referential integrity | Product must exist, supplier must exist, location must exist |
+| Business rules | Quantity must be greater than zero, delivery date cannot precede order date |
+| Event rules | Valid event type, valid reason code, non-zero quantity change |
+| Operational rules | Accepted count must match loaded count |
+
+## Monitoring Tables
+
+| Table | Purpose |
+|---|---|
+| `monitoring.batch_audit_log` | Tracks each batch/source load |
+| `monitoring.rejected_records` | Stores invalid records and rejection reasons |
+| `monitoring.validation_results` | Stores validation outcomes |
+| `monitoring.reconciliation_results` | Stores source-to-target reconciliation outcomes |
+| `monitoring.nifi_connectivity_test` | Proves NiFi JDBC connectivity |
+
+## Example Reconciliation Result
+
+The platform reconciles every integration batch using this rule:
+
+```text
+accepted_count must equal loaded_count
+source_count must equal accepted_count + rejected_count
+```
+
+Example status:
+
+```text
+MATCHED_WITH_REJECTIONS
+```
+
+This means the batch completed successfully, valid records were loaded, invalid records were rejected, and source-to-target counts reconciled.
+
+## Local Setup
+
+### 1. Clone and enter the project
 
 ```powershell
-docker compose up -d postgres adminer mock-api
+git clone <repo-url>
+cd retail-supply-chain-integration-platform
 ```
 
-## Start Middleware
+### 2. Create Python virtual environment
 
 ```powershell
-docker compose --profile middleware up -d nifi
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-NiFi UI:
-
-```text
-https://localhost:8443/nifi
-```
-
-## Start Eventing Services
+### 3. Create `.env`
 
 ```powershell
-docker compose --profile eventing up -d redpanda redpanda-console
+Copy-Item .env.example .env
 ```
 
-Redpanda Console:
+### 4. Start services
 
-```text
-http://localhost:8081
+```powershell
+docker compose --profile middleware --profile eventing up -d --build
 ```
 
-## PostgreSQL Access
+### 5. Validate services
 
-Adminer:
-
-```text
-http://localhost:8082
+```powershell
+docker compose ps
 ```
 
-Connection:
+Useful URLs:
 
-```text
-System: PostgreSQL
-Server: postgres
-Username: integration_user
-Password: integration_password
-Database: integration_platform
+| Service | URL |
+|---|---|
+| FastAPI docs | `http://localhost:8000/docs` |
+| Adminer | `http://localhost:8082` |
+| NiFi | `https://localhost:8443/nifi` |
+| Redpanda Console | `http://localhost:8081` |
+
+## Run the Full Demo
+
+### 1. Generate flat-file data
+
+```powershell
+python scripts/generate_master_data_files.py --seed 42
 ```
 
-## Current Status
+### 2. Run flat-file integration
 
-Phase 1: environment foundation.
+```powershell
+python scripts/load_master_data_to_raw.py
+python scripts/validate_master_data_batches.py
+python scripts/load_master_data_targets.py
+```
+
+### 3. Run API integration
+
+```powershell
+python scripts/load_api_data_to_raw.py
+python scripts/validate_api_batches.py
+python scripts/load_api_targets.py
+```
+
+### 4. Run event stream integration
+
+Create topic if needed:
+
+```powershell
+docker exec -it rscp_redpanda rpk topic create inventory-events --brokers localhost:9092
+```
+
+Produce and consume events:
+
+```powershell
+python scripts/produce_inventory_events.py --count 200 --seed 42
+python scripts/consume_inventory_events_to_raw.py --max-messages 206
+python scripts/validate_inventory_event_batch.py
+python scripts/load_inventory_targets.py
+```
+
+### 5. Run demo queries
+
+```powershell
+docker exec -it rscp_postgres psql -U integration_user -d integration_platform -f /docker-entrypoint-initdb.d/07_demo_queries.sql
+```
+
+## Key Demo Queries
+
+### Batch audit summary
+
+```sql
+select
+    entity_name,
+    batch_type,
+    source_count,
+    accepted_count,
+    rejected_count,
+    loaded_count,
+    status
+from monitoring.batch_audit_log
+order by created_at;
+```
+
+### Rejected records by reason
+
+```sql
+select
+    entity_name,
+    rejection_stage,
+    rejection_reason,
+    count(*) as rejected_count
+from monitoring.rejected_records
+group by 1, 2, 3
+order by entity_name, rejected_count desc;
+```
+
+### Source-to-target reconciliation
+
+```sql
+select
+    entity_name,
+    source_count,
+    accepted_count,
+    rejected_count,
+    loaded_count,
+    count_difference,
+    status
+from monitoring.reconciliation_results
+order by reconciled_at;
+```
+
+## Documentation
+
+| Document | Purpose |
+|---|---|
+| `docs/data_generation.md` | Synthetic data generation |
+| `docs/flat_file_integration.md` | Flat-file integration flow |
+| `docs/api_integration.md` | API integration flow |
+| `docs/event_stream_integration.md` | Event stream integration flow |
+| `docs/nifi_integration.md` | Apache NiFi setup and demos |
+
+## Project Status
+
+Completed:
+
+- Flat-file integration
+- API integration
+- Event stream integration
+- Rejected records
+- Batch audit logs
+- Reconciliation
+- NiFi PostgreSQL connectivity
+- NiFi flat-file ingestion demo
+- NiFi API ingestion demo
+
+Planned documentation polish:
+
+- Architecture details
+- Source-to-target mapping
+- Data quality rules
+- Operational runbook
+- Troubleshooting guide
+- Technical decisions
