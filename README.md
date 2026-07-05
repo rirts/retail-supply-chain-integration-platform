@@ -222,12 +222,24 @@ MATCHED_WITH_REJECTIONS
 
 This means the batch completed successfully, valid records were loaded, invalid records were rejected, and source-to-target counts reconciled.
 
+## Quick Reviewer Path
+
+For a fast review, start with:
+
+| File | Purpose |
+|---|---|
+| `docs/reviewer_guide.md` | Fast evaluation path and key project highlights |
+| `docs/architecture.md` | System architecture and schema responsibilities |
+| `docs/source_to_target_mapping.md` | Source-to-target mapping discipline |
+| `docs/data_quality_rules.md` | Validation, rejected records, and reconciliation rules |
+| `sql/17_final_validation_checks.sql` | Final validation checks for expected outputs |
+
 ## Local Setup
 
 ### 1. Clone and enter the project
 
 ```powershell
-git clone <repo-url>
+git clone https://github.com/rirts/retail-supply-chain-integration-platform.git
 cd retail-supply-chain-integration-platform
 ```
 
@@ -393,16 +405,27 @@ Completed:
 - Event stream integration
 - Rejected records
 - Batch audit logs
-- Reconciliation
+- Source-to-target reconciliation
+- Duplicate event handling / idempotency
 - NiFi PostgreSQL connectivity
 - NiFi flat-file ingestion demo
 - NiFi API ingestion demo
-
-Planned documentation polish:
-
-- Architecture details
-- Source-to-target mapping
-- Data quality rules
 - Operational runbook
 - Troubleshooting guide
-- Technical decisions
+- Source-to-target mapping
+- Data quality documentation
+- Technical decisions documentation
+- Reviewer guide
+- Final validation checks
+
+Final validation:
+
+```powershell
+docker exec -it rscp_postgres psql -U integration_user -d integration_platform -f /docker-entrypoint-initdb.d/17_final_validation_checks.sql
+```
+
+Expected result:
+
+```text
+All validation checks return PASS.
+```
