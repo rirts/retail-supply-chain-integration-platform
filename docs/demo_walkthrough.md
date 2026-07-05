@@ -119,7 +119,7 @@ Expected result with seed `42`:
 | Table | Expected Count |
 |---|---:|
 | `target.dim_supplier` | 24 |
-| `target.dim_product` | 232 |
+| `target.dim_product` | 233 |
 | `target.dim_location` | 49 |
 
 ## Validate Flat-File Reconciliation

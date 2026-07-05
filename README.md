@@ -372,6 +372,8 @@ order by reconciled_at;
 | `docs/data_quality_rules.md` | Data quality, rejected record, and reconciliation rules |
 | `docs/operational_runbook.md` | Operational instructions for running and validating the platform |
 | `docs/troubleshooting_guide.md` | Common issues, fixes, and debugging checklist |
+| `docs/technical_decisions.md` | Explanation of major architecture and implementation decisions |
+| `docs/demo_walkthrough.md` | Step-by-step demo execution guide |
 
 ## Project Status
 
