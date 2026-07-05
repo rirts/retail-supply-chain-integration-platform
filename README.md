@@ -246,13 +246,21 @@ python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-### 4. Start services
+### 4. Download NiFi PostgreSQL JDBC Driver
+
+```powershell
+Invoke-WebRequest `
+  -Uri "https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.12/postgresql-42.7.12.jar" `
+  -OutFile "nifi/drivers/postgresql-42.7.12.jar"
+```
+
+### 5. Start services
 
 ```powershell
 docker compose --profile middleware --profile eventing up -d --build
 ```
 
-### 5. Validate services
+### 6. Validate services
 
 ```powershell
 docker compose ps
