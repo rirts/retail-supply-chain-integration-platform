@@ -36,3 +36,6 @@ nifi/provenance_repository/
 # Secrets
 *.pem
 *.key
+
+# NiFi external drivers
+nifi/drivers/*.jar
