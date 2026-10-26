@@ -1,3 +1,34 @@
+-- Safe conversion helpers: malformed source values become validation failures.
+create or replace function monitoring.try_integer(value text) returns integer
+language plpgsql immutable as $$
+begin
+    return nullif(trim(value), '')::integer;
+exception when data_exception then return null;
+end;
+$$;
+
+create or replace function monitoring.try_numeric(value text) returns numeric
+language plpgsql immutable as $$
+declare result numeric(18,4);
+begin
+    result := nullif(trim(value), '')::numeric(18,4);
+    if result::text in ('NaN', 'Infinity', '-Infinity') then return null; end if;
+    return result;
+exception when data_exception then return null;
+end;
+$$;
+
+create or replace function monitoring.try_timestamptz(value text) returns timestamptz
+language plpgsql stable as $$
+declare result timestamptz;
+begin
+    result := nullif(trim(value), '')::timestamptz;
+    if not isfinite(result) then return null; end if;
+    return result;
+exception when data_exception then return null;
+end;
+$$;
+
 alter table monitoring.batch_audit_log
 drop constraint if exists batch_audit_log_status_check;
 
@@ -185,7 +216,7 @@ begin
                 trim(coalesce(raw_payload ->> 'unit_cost', '')) as unit_cost_text,
                 case
                     when trim(coalesce(raw_payload ->> 'unit_cost', '')) ~ '^-?[0-9]+(\.[0-9]+)?$'
-                    then trim(coalesce(raw_payload ->> 'unit_cost', ''))::numeric(18, 4)
+                    then monitoring.try_numeric(raw_payload ->> 'unit_cost')
                     else null
                 end as unit_cost,
                 upper(trim(coalesce(raw_payload ->> 'product_status', ''))) as product_status
@@ -229,6 +260,11 @@ begin
                 case when product_status not in ('ACTIVE', 'DISCONTINUED', 'SEASONAL') then 'product_status is invalid' end,
                 case when product_id <> '' and product_id_count > 1 then 'product_id is duplicated within batch' end,
                 case when sku <> '' and sku_count > 1 then 'sku is duplicated within batch' end,
+                case when exists (
+                    select 1 from target.dim_product existing
+                    where existing.sku = enriched.sku
+                      and existing.product_id <> enriched.product_id
+                ) then 'sku belongs to another product in target' end,
                 case
                     when supplier_id <> ''
                      and not exists (
@@ -263,7 +299,7 @@ begin
             parsed_payload ->> 'product_name',
             parsed_payload ->> 'category',
             parsed_payload ->> 'supplier_id',
-            nullif(parsed_payload ->> 'unit_cost', '')::numeric(18, 4),
+            monitoring.try_numeric(parsed_payload ->> 'unit_cost'),
             parsed_payload ->> 'product_status',
             source_system,
             now(),

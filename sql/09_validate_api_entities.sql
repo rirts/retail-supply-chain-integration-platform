@@ -92,19 +92,19 @@ begin
                 trim(coalesce(raw_payload ->> 'location_id', '')) as location_id,
                 upper(trim(coalesce(raw_payload ->> 'customer_channel', ''))) as customer_channel,
                 upper(trim(coalesce(raw_payload ->> 'order_status', ''))) as order_status,
-                nullif(raw_payload ->> 'order_date', '')::timestamptz as order_date,
-                nullif(raw_payload ->> 'requested_ship_date', '')::timestamptz as requested_ship_date,
+                monitoring.try_timestamptz(raw_payload ->> 'order_date') as order_date,
+                monitoring.try_timestamptz(raw_payload ->> 'requested_ship_date') as requested_ship_date,
                 case
                     when trim(coalesce(raw_payload ->> 'quantity_ordered', '')) ~ '^-?[0-9]+$'
-                    then trim(coalesce(raw_payload ->> 'quantity_ordered', ''))::integer
+                    then monitoring.try_integer(raw_payload ->> 'quantity_ordered')
                     else null
                 end as quantity_ordered,
                 case
                     when trim(coalesce(raw_payload ->> 'unit_price', '')) ~ '^-?[0-9]+(\.[0-9]+)?$'
-                    then trim(coalesce(raw_payload ->> 'unit_price', ''))::numeric(18, 4)
+                    then monitoring.try_numeric(raw_payload ->> 'unit_price')
                     else null
                 end as unit_price,
-                nullif(raw_payload ->> 'updated_at', '')::timestamptz as updated_at
+                monitoring.try_timestamptz(raw_payload ->> 'updated_at') as updated_at
             from raw.api_ingestion_raw
             where batch_id = p_batch_id
               and entity_name = 'sales_orders'
@@ -179,17 +179,17 @@ begin
         )
         select
             p_batch_id,
-            raw_payload ->> 'sales_order_id',
-            raw_payload ->> 'sales_order_line_id',
+            coalesce(raw_payload ->> 'sales_order_id', ''),
+            coalesce(raw_payload ->> 'sales_order_line_id', ''),
             raw_payload ->> 'product_id',
             raw_payload ->> 'location_id',
             raw_payload ->> 'customer_channel',
             raw_payload ->> 'order_status',
-            nullif(raw_payload ->> 'order_date', '')::timestamptz,
-            nullif(raw_payload ->> 'requested_ship_date', '')::timestamptz,
-            nullif(raw_payload ->> 'quantity_ordered', '')::integer,
-            nullif(raw_payload ->> 'unit_price', '')::numeric(18, 4),
-            nullif(raw_payload ->> 'updated_at', '')::timestamptz,
+            monitoring.try_timestamptz(raw_payload ->> 'order_date'),
+            monitoring.try_timestamptz(raw_payload ->> 'requested_ship_date'),
+            monitoring.try_integer(raw_payload ->> 'quantity_ordered'),
+            monitoring.try_numeric(raw_payload ->> 'unit_price'),
+            monitoring.try_timestamptz(raw_payload ->> 'updated_at'),
             source_system,
             now(),
             case when cardinality(validation_errors) = 0 then 'ACCEPTED' else 'REJECTED' end,
@@ -220,19 +220,19 @@ begin
                 trim(coalesce(raw_payload ->> 'product_id', '')) as product_id,
                 trim(coalesce(raw_payload ->> 'destination_location_id', '')) as destination_location_id,
                 upper(trim(coalesce(raw_payload ->> 'purchase_order_status', ''))) as purchase_order_status,
-                nullif(raw_payload ->> 'order_date', '')::timestamptz as order_date,
-                nullif(raw_payload ->> 'expected_delivery_date', '')::timestamptz as expected_delivery_date,
+                monitoring.try_timestamptz(raw_payload ->> 'order_date') as order_date,
+                monitoring.try_timestamptz(raw_payload ->> 'expected_delivery_date') as expected_delivery_date,
                 case
                     when trim(coalesce(raw_payload ->> 'quantity_ordered', '')) ~ '^-?[0-9]+$'
-                    then trim(coalesce(raw_payload ->> 'quantity_ordered', ''))::integer
+                    then monitoring.try_integer(raw_payload ->> 'quantity_ordered')
                     else null
                 end as quantity_ordered,
                 case
                     when trim(coalesce(raw_payload ->> 'unit_cost', '')) ~ '^-?[0-9]+(\.[0-9]+)?$'
-                    then trim(coalesce(raw_payload ->> 'unit_cost', ''))::numeric(18, 4)
+                    then monitoring.try_numeric(raw_payload ->> 'unit_cost')
                     else null
                 end as unit_cost,
-                nullif(raw_payload ->> 'updated_at', '')::timestamptz as updated_at
+                monitoring.try_timestamptz(raw_payload ->> 'updated_at') as updated_at
             from raw.api_ingestion_raw
             where batch_id = p_batch_id
               and entity_name = 'purchase_orders'
@@ -316,17 +316,17 @@ begin
         )
         select
             p_batch_id,
-            raw_payload ->> 'purchase_order_id',
-            raw_payload ->> 'purchase_order_line_id',
+            coalesce(raw_payload ->> 'purchase_order_id', ''),
+            coalesce(raw_payload ->> 'purchase_order_line_id', ''),
             raw_payload ->> 'supplier_id',
             raw_payload ->> 'product_id',
             raw_payload ->> 'destination_location_id',
             raw_payload ->> 'purchase_order_status',
-            nullif(raw_payload ->> 'order_date', '')::timestamptz,
-            nullif(raw_payload ->> 'expected_delivery_date', '')::timestamptz,
-            nullif(raw_payload ->> 'quantity_ordered', '')::integer,
-            nullif(raw_payload ->> 'unit_cost', '')::numeric(18, 4),
-            nullif(raw_payload ->> 'updated_at', '')::timestamptz,
+            monitoring.try_timestamptz(raw_payload ->> 'order_date'),
+            monitoring.try_timestamptz(raw_payload ->> 'expected_delivery_date'),
+            monitoring.try_integer(raw_payload ->> 'quantity_ordered'),
+            monitoring.try_numeric(raw_payload ->> 'unit_cost'),
+            monitoring.try_timestamptz(raw_payload ->> 'updated_at'),
             source_system,
             now(),
             case when cardinality(validation_errors) = 0 then 'ACCEPTED' else 'REJECTED' end,
@@ -359,14 +359,14 @@ begin
                 trim(coalesce(raw_payload ->> 'destination_location_id', '')) as destination_location_id,
                 upper(trim(coalesce(raw_payload ->> 'carrier', ''))) as carrier,
                 upper(trim(coalesce(raw_payload ->> 'shipment_status', ''))) as shipment_status,
-                nullif(raw_payload ->> 'shipped_at', '')::timestamptz as shipped_at,
-                nullif(raw_payload ->> 'delivered_at', '')::timestamptz as delivered_at,
+                monitoring.try_timestamptz(raw_payload ->> 'shipped_at') as shipped_at,
+                monitoring.try_timestamptz(raw_payload ->> 'delivered_at') as delivered_at,
                 case
                     when trim(coalesce(raw_payload ->> 'quantity_shipped', '')) ~ '^-?[0-9]+$'
-                    then trim(coalesce(raw_payload ->> 'quantity_shipped', ''))::integer
+                    then monitoring.try_integer(raw_payload ->> 'quantity_shipped')
                     else null
                 end as quantity_shipped,
-                nullif(raw_payload ->> 'updated_at', '')::timestamptz as updated_at
+                monitoring.try_timestamptz(raw_payload ->> 'updated_at') as updated_at
             from raw.api_ingestion_raw
             where batch_id = p_batch_id
               and entity_name = 'shipments'
@@ -452,7 +452,7 @@ begin
         )
         select
             p_batch_id,
-            raw_payload ->> 'shipment_id',
+            coalesce(raw_payload ->> 'shipment_id', ''),
             raw_payload ->> 'related_order_type',
             raw_payload ->> 'related_order_id',
             raw_payload ->> 'product_id',
@@ -460,10 +460,10 @@ begin
             raw_payload ->> 'destination_location_id',
             raw_payload ->> 'carrier',
             raw_payload ->> 'shipment_status',
-            nullif(raw_payload ->> 'shipped_at', '')::timestamptz,
-            nullif(raw_payload ->> 'delivered_at', '')::timestamptz,
-            nullif(raw_payload ->> 'quantity_shipped', '')::integer,
-            nullif(raw_payload ->> 'updated_at', '')::timestamptz,
+            monitoring.try_timestamptz(raw_payload ->> 'shipped_at'),
+            monitoring.try_timestamptz(raw_payload ->> 'delivered_at'),
+            monitoring.try_integer(raw_payload ->> 'quantity_shipped'),
+            monitoring.try_timestamptz(raw_payload ->> 'updated_at'),
             source_system,
             now(),
             case when cardinality(validation_errors) = 0 then 'ACCEPTED' else 'REJECTED' end,

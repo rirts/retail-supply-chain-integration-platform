@@ -87,12 +87,12 @@ begin
             trim(coalesce(raw_payload ->> 'location_id', '')) as location_id,
             case
                 when trim(coalesce(raw_payload ->> 'quantity_change', '')) ~ '^-?[0-9]+$'
-                then trim(coalesce(raw_payload ->> 'quantity_change', ''))::integer
+                then monitoring.try_integer(raw_payload ->> 'quantity_change')
                 else null
             end as quantity_change,
             upper(trim(coalesce(raw_payload ->> 'reason_code', ''))) as reason_code,
-            nullif(raw_payload ->> 'event_timestamp', '')::timestamptz as event_timestamp,
-            nullif(raw_payload ->> 'published_at', '')::timestamptz as published_at
+            monitoring.try_timestamptz(raw_payload ->> 'event_timestamp') as event_timestamp,
+            monitoring.try_timestamptz(raw_payload ->> 'published_at') as published_at
         from raw.inventory_events_raw
         where batch_id = p_batch_id
     )
@@ -164,14 +164,14 @@ begin
     )
     select
         p_batch_id,
-        raw_payload ->> 'event_id',
+        coalesce(raw_payload ->> 'event_id', ''),
         raw_payload ->> 'event_type',
         raw_payload ->> 'product_id',
         raw_payload ->> 'location_id',
-        nullif(raw_payload ->> 'quantity_change', '')::integer,
+        monitoring.try_integer(raw_payload ->> 'quantity_change'),
         raw_payload ->> 'reason_code',
-        nullif(raw_payload ->> 'event_timestamp', '')::timestamptz,
-        nullif(raw_payload ->> 'published_at', '')::timestamptz,
+        monitoring.try_timestamptz(raw_payload ->> 'event_timestamp'),
+        monitoring.try_timestamptz(raw_payload ->> 'published_at'),
         source_system,
         now(),
         case when cardinality(validation_errors) = 0 then 'ACCEPTED' else 'REJECTED' end,

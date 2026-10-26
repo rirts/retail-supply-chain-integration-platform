@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import uuid
 from pathlib import Path
 from typing import Any
 
@@ -65,7 +64,7 @@ def create_event_batch(conn: psycopg.Connection, expected_count: int | None) -> 
             {
                 "source_system": SOURCE_SYSTEM,
                 "source_reference": TOPIC_NAME,
-                "source_count": expected_count or 0,
+                "source_count": 0,
             },
         )
 
@@ -149,10 +148,11 @@ def insert_duplicate_event_rejection(
 
 
 def consume_events(max_messages: int, timeout_seconds: int) -> None:
+    load_dotenv(PROJECT_ROOT / ".env")
     consumer = Consumer(
         {
-            "bootstrap.servers": BOOTSTRAP_SERVERS,
-            "group.id": f"inventory-raw-loader-{uuid.uuid4()}",
+            "bootstrap.servers": os.getenv("KAFKA_BOOTSTRAP_SERVERS", BOOTSTRAP_SERVERS),
+            "group.id": os.getenv("KAFKA_CONSUMER_GROUP", "inventory-raw-loader"),
             "auto.offset.reset": "earliest",
             "enable.auto.commit": False,
         }
@@ -183,9 +183,11 @@ def consume_events(max_messages: int, timeout_seconds: int) -> None:
 
                 try:
                     payload = json.loads(msg.value().decode("utf-8"))
-                except json.JSONDecodeError:
+                    if not isinstance(payload, dict):
+                        payload = {"raw_value": payload, "parse_error": "expected_json_object"}
+                except (json.JSONDecodeError, UnicodeDecodeError, AttributeError):
                     payload = {
-                        "raw_message": msg.value().decode("utf-8", errors="replace"),
+                        "raw_message": (msg.value() or b"").decode("utf-8", errors="replace"),
                         "parse_error": "invalid_json",
                     }
 
@@ -207,6 +209,15 @@ def consume_events(max_messages: int, timeout_seconds: int) -> None:
                             raw_payload=payload,
                         )
 
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            "update monitoring.batch_audit_log set source_count=%s, updated_at=now() where batch_id=%s",
+                            (consumed_count, batch_id),
+                        )
+
+                # Confirm only after the raw record (or duplicate rejection) is durable.
+                # Re-delivery after a crash is safe because event_id is unique.
+                consumer.commit(message=msg, asynchronous=False)
                 if inserted:
                     inserted_count += 1
                 else:
