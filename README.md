@@ -429,3 +429,12 @@ Expected result:
 ```text
 All validation checks return PASS.
 ```
+## Robust input handling and regression checks
+
+SQL initialization includes safe conversion functions for integers, numeric amounts and timestamps. Invalid values remain in raw and become rejected staging records rather than aborting the batch. Product validation checks SKU collisions against both the batch and the published dimension.
+
+After running the demo, execute `sql/18_regression_tests.sql` to check mixed valid/malformed event payloads; it rolls back its fixtures. The event consumer uses a stable group (configurable with `KAFKA_CONSUMER_GROUP`) and synchronously commits offsets only after the database transaction succeeds. For an intentional replay, choose a separate group; event_id deduplication still protects inventory.
+
+NiFi setup remains manual until a flow export is provided. See `docs/nifi_integration.md`.
+
+CI runs consumer commit-order tests and SQL quarantine/SKU regressions against PostgreSQL 16. Local SQL integration tests require `PG_TEST_DSN` pointing to a dedicated test database; without it, those tests are skipped.

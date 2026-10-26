@@ -91,3 +91,6 @@ Expected result:
 ## Design Note
 
 This NiFi API demo proves middleware-based API ingestion into PostgreSQL. The main production-style API pipeline still uses raw/staging/target tables, SQL validation, rejected records, audit logging, and reconciliation.
+## Reproducibility boundary
+
+The repository documents the NiFi flows but does not contain an exported flow definition or JDBC binary. Building those demo flows in NiFi is a manual setup step. The automated CSV/API/event validation paths do not require NiFi. Do not treat starting the container as proof that its flows are deployed.
